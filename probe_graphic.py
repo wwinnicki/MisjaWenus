@@ -1,7 +1,100 @@
-"""Rysunek sondy jako SVG, zależny od wybranych systemów."""
+"""Grafika gry jako SVG: sonda, planety i scena lądowania."""
 
 SHIELD_WIDTH = {"light": 80, "medium": 100, "heavy": 124}
 HULL_WIDTH = {"none": 56, "standard": 68, "reinforced": 84}
+
+# Kratery Merkurego: (cx, cy, r) w układzie kuli o środku (100, 100) i promieniu 78.
+_CRATERS = [
+    (74, 60, 15), (119, 50, 9), (143, 85, 12), (60, 103, 11),
+    (96, 121, 17), (136, 133, 8), (77, 149, 10), (45, 74, 6),
+    (110, 86, 6), (152, 58, 5), (101, 158, 6), (127, 107, 5),
+    (63, 129, 6), (156, 110, 6),
+]
+
+# Pasma chmur Wenus: (cy, rx, ry, kolor, krycie) przy cx = 100.
+_CLOUD_BANDS = [
+    (52, 50, 12, "#fff8e2", 0.50),
+    (76, 70, 10, "#c9822f", 0.26),
+    (98, 77, 14, "#fff4d0", 0.38),
+    (122, 69, 9, "#b3701f", 0.28),
+    (146, 52, 12, "#ffeec2", 0.34),
+]
+
+PLANET_ART = {
+    "mercury": {
+        "light": "#d3c8ba",
+        "mid": "#9a8f86",
+        "dark": "#463f39",
+        "glow": "#cbd5e1",
+        "label": "Merkury — skalista planeta pokryta kraterami",
+    },
+    "venus": {
+        "light": "#fff6d8",
+        "mid": "#e8c07d",
+        "dark": "#8a5a1c",
+        "glow": "#fcd34d",
+        "label": "Wenus — planeta skryta pod gęstymi chmurami",
+    },
+}
+
+
+def planet_svg(key: str, size: int = 180) -> str:
+    """Stylizowana ilustracja planety — rysowana w kodzie, bez plików zewnętrznych."""
+    art = PLANET_ART[key]
+    uid = f"planet-{key}-{size}"
+    body, shade, halo, clip = f"{uid}-b", f"{uid}-s", f"{uid}-h", f"{uid}-c"
+
+    parts = [
+        f'<defs>'
+        f'<radialGradient id="{body}" cx="34%" cy="28%" r="78%">'
+        f'<stop offset="0%" stop-color="{art["light"]}" />'
+        f'<stop offset="55%" stop-color="{art["mid"]}" />'
+        f'<stop offset="100%" stop-color="{art["dark"]}" /></radialGradient>'
+        f'<radialGradient id="{shade}" cx="32%" cy="26%" r="80%">'
+        f'<stop offset="52%" stop-color="#000000" stop-opacity="0" />'
+        f'<stop offset="100%" stop-color="#000000" stop-opacity="0.62" /></radialGradient>'
+        f'<radialGradient id="{halo}" cx="50%" cy="50%" r="50%">'
+        f'<stop offset="72%" stop-color="{art["glow"]}" stop-opacity="0.32" />'
+        f'<stop offset="100%" stop-color="{art["glow"]}" stop-opacity="0" /></radialGradient>'
+        f'<clipPath id="{clip}"><circle cx="100" cy="100" r="78" /></clipPath>'
+        f'</defs>',
+        f'<circle cx="100" cy="100" r="98" fill="url(#{halo})" />',
+        f'<circle cx="100" cy="100" r="78" fill="url(#{body})" />',
+        f'<g clip-path="url(#{clip})">',
+    ]
+
+    if key == "mercury":
+        for cx, cy, r in _CRATERS:
+            parts.append(
+                f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="#000000" opacity="0.22" />'
+                f'<circle cx="{cx - r * 0.14:.1f}" cy="{cy - r * 0.16:.1f}" r="{r * 0.82:.1f}" '
+                f'fill="#ffffff" opacity="0.10" />'
+            )
+    else:
+        parts.append('<g transform="rotate(-14 100 100)">')
+        for cy, rx, ry, color, opacity in _CLOUD_BANDS:
+            parts.append(
+                f'<ellipse cx="100" cy="{cy}" rx="{rx}" ry="{ry}" fill="{color}" '
+                f'opacity="{opacity}" />'
+            )
+        parts.append(
+            '<ellipse cx="72" cy="88" rx="26" ry="7" fill="#fffaf0" opacity="0.40" />'
+            '<ellipse cx="132" cy="116" rx="22" ry="6" fill="#a9651b" opacity="0.28" />'
+            "</g>"
+        )
+
+    parts.append(f'<circle cx="100" cy="100" r="78" fill="url(#{shade})" /></g>')
+    parts.append(
+        '<ellipse cx="72" cy="66" rx="24" ry="16" fill="#ffffff" opacity="0.16" '
+        'transform="rotate(-28 72 66)" />'
+    )
+
+    return (
+        f'<svg viewBox="0 0 200 200" width="{size}" height="{size}" '
+        f'xmlns="http://www.w3.org/2000/svg" role="img" aria-label="{art["label"]}">'
+        + "".join(parts)
+        + "</svg>"
+    )
 
 
 def probe_svg(heat_shielding: str, pressure_hull: str, power_source: str, stage: str | None = None) -> str:

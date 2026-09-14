@@ -7,7 +7,7 @@ import streamlit as st
 
 import game_data as gd
 from mission import run_mission, total_mass
-from probe_graphic import descent_scene, probe_svg
+from probe_graphic import descent_scene, planet_svg, probe_svg
 
 st.set_page_config(page_title="Misja Sonda", page_icon="🛰️", layout="centered")
 
@@ -56,6 +56,12 @@ def render_probe(heat_shielding: str, pressure_hull: str, power_source: str) -> 
     st.markdown(f'<div style="text-align:center">{svg}</div>', unsafe_allow_html=True)
 
 
+def render_planet(key: str, size: int = 170) -> None:
+    st.markdown(
+        f'<div style="text-align:center">{planet_svg(key, size)}</div>', unsafe_allow_html=True
+    )
+
+
 # ============================================================
 # Ekrany
 # ============================================================
@@ -83,14 +89,14 @@ def screen_select() -> None:
     st.caption("Porównaj warunki, zanim wyślesz sondę.")
 
     st.markdown(
-        """
+        f"""
         <div style="display:flex;align-items:center;gap:1rem;padding:1rem;border-radius:1rem;
                     background:linear-gradient(90deg,#fde68a22,#0f172a22)">
           <div style="font-size:2rem">☀️ <strong style="font-size:1rem">Słońce</strong></div>
           <div style="flex:1;border-top:2px dashed #94a3b8"></div>
-          <div style="text-align:center">🪨<br><small>Merkury<br>58 mln km</small></div>
+          <div style="text-align:center">{planet_svg("mercury", 52)}<br><small>Merkury<br>58 mln km</small></div>
           <div style="flex:1;border-top:2px dashed #94a3b8"></div>
-          <div style="text-align:center">🟡<br><small>Wenus<br>108 mln km</small></div>
+          <div style="text-align:center">{planet_svg("venus", 52)}<br><small>Wenus<br>108 mln km</small></div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -99,10 +105,7 @@ def screen_select() -> None:
     for column, key in zip(st.columns(2), gd.PLANETS):
         planet = gd.PLANETS[key]
         with column, st.container(border=True):
-            st.markdown(
-                f"<div style='font-size:3rem;text-align:center'>{planet['emoji']}</div>",
-                unsafe_allow_html=True,
-            )
+            render_planet(key)
             st.caption(planet["badge"].upper())
             st.markdown(f"### {planet['name']}")
             st.write(planet["teaser"])
@@ -139,7 +142,12 @@ def screen_build() -> None:
 
     header, target = st.columns([3, 2])
     header.subheader("Zbuduj swoją sondę")
-    target.markdown(f"<p style='text-align:right;padding-top:0.8rem'><strong>Cel:</strong> {planet['name']}</p>", unsafe_allow_html=True)
+    target.markdown(
+        f"<div style='display:flex;align-items:center;justify-content:flex-end;gap:0.5rem;"
+        f"padding-top:0.4rem'>{planet_svg(st.session_state.planet, 38)}"
+        f"<span><strong>Cel:</strong> {planet['name']}</span></div>",
+        unsafe_allow_html=True,
+    )
 
     preview, controls = st.columns([2, 3])
 
@@ -305,10 +313,7 @@ def screen_briefing() -> None:
     for column, key in zip(st.columns(2), gd.PLANETS):
         planet = gd.PLANETS[key]
         with column, st.container(border=True):
-            st.markdown(
-                f"<div style='font-size:3rem;text-align:center'>{planet['emoji']}</div>",
-                unsafe_allow_html=True,
-            )
+            render_planet(key, 150)
             st.caption(planet["badge"].upper())
             st.markdown(f"### {planet['name']}")
             st.write(planet["teaser"])
