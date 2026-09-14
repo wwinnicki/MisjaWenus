@@ -327,7 +327,7 @@ def screen_briefing() -> None:
                 "Kod klasy", placeholder="Wpisz kod klasy", key="brief_code", label_visibility="collapsed"
             )
             unlock.button("Odblokuj", type="primary", use_container_width=True, on_click=unlock_briefing)
-            st.caption("Podpowiedź: kod to ORBIT.")
+            # st.caption("Podpowiedź: kod to ORBIT.")
         return
 
     for column, key in zip(st.columns(2), gd.PLANETS):
@@ -355,6 +355,7 @@ def screen_briefing() -> None:
         for item in gd.TAKEAWAYS:
             st.markdown(f"- {item}")
 
+    st.write("Jerzy Winnicki, Maciej Brzoza")
 
 # ============================================================
 # Nagłówek i aktywny ekran
