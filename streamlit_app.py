@@ -17,6 +17,7 @@ DEFAULTS = {
     "heat_shielding": "light",
     "pressure_hull": "none",
     "power_source": "solar",
+    "landing_system": "parachute",
     "landing_site": "day",
     "briefing_unlocked": False,
     "fact_index": 0,
@@ -128,6 +129,7 @@ def launch() -> None:
         pressure_hull=st.session_state.pressure_hull,
         power_source=st.session_state.power_source,
         landing_site=st.session_state.landing_site,
+        landing_system=st.session_state.landing_system,
         fact_index=st.session_state.fact_index,
     )
     st.session_state.result = result
@@ -170,6 +172,12 @@ def screen_build() -> None:
             format_func=option_caption(gd.POWER_SOURCE),
             key="power_source",
         )
+        st.selectbox(
+            gd.LANDING_SYSTEM["name"],
+            [o["key"] for o in gd.LANDING_SYSTEM["options"]],
+            format_func=option_caption(gd.LANDING_SYSTEM),
+            key="landing_system",
+        )
         st.radio(
             "Miejsce lądowania",
             [s["key"] for s in gd.LANDING_SITES],
@@ -178,12 +186,14 @@ def screen_build() -> None:
             key="landing_site",
         )
 
+    budget = planet["budget"]
     mass = total_mass(
         st.session_state.heat_shielding,
         st.session_state.pressure_hull,
         st.session_state.power_source,
+        st.session_state.landing_system,
     )
-    over_budget = mass > gd.BUDGET
+    over_budget = mass > budget
 
     with preview:
         st.caption("TWOJA SONDA")
@@ -195,12 +205,13 @@ def screen_build() -> None:
         st.caption(
             f"{label_of(gd.HEAT_SHIELDING, st.session_state.heat_shielding)} osłona · "
             f"{label_of(gd.PRESSURE_HULL, st.session_state.pressure_hull)} kadłub · "
-            f"{label_of(gd.POWER_SOURCE, st.session_state.power_source)}"
+            f"{label_of(gd.POWER_SOURCE, st.session_state.power_source)} · "
+            f"{label_of(gd.LANDING_SYSTEM, st.session_state.landing_system)}"
         )
 
     with st.container(border=True):
-        st.markdown(f"**Limit masy** — {mass} / {gd.BUDGET}")
-        st.progress(min(mass / gd.BUDGET, 1.0))
+        st.markdown(f"**Limit masy dla misji na {planet['name']}** — {mass} / {budget}")
+        st.progress(min(mass / budget, 1.0))
         if over_budget:
             st.error("Przekroczono limit! Wybierz lżejsze systemy.")
 
@@ -277,7 +288,7 @@ def screen_result() -> None:
         st.write(result.cause)
 
     if result.landing_note:
-        st.warning(f"**Wniosek dotyczący miejsca lądowania**\n\n{result.landing_note}")
+        st.info(f"**Miejsce lądowania**\n\n{result.landing_note}")
 
     if result.wasted_mass:
         with st.container(border=True):
