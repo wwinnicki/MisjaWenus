@@ -22,7 +22,7 @@ DEFAULTS = {
     "fact_index": 0,
     "best_time": 0,
     "result": None,
-    "sim_frame": 0,
+    "sim_done": False,
 }
 
 for key, value in DEFAULTS.items():
@@ -133,7 +133,7 @@ def launch() -> None:
     st.session_state.result = result
     st.session_state.fact_index += 1
     st.session_state.best_time = max(st.session_state.best_time, result.final_minutes)
-    st.session_state.sim_frame = 0
+    st.session_state.sim_done = False
     st.session_state.screen = "simulation"
 
 
@@ -213,39 +213,48 @@ def screen_simulation() -> None:
     planet_key = st.session_state.planet
     planet = gd.PLANETS[planet_key]
     result = st.session_state.result
-    destroyed = result is not None and result.survival_minutes == 0
+    destroyed = result.survival_minutes == 0
 
-    steps = 26
-    frame = st.session_state.sim_frame
-    last = frame == steps
+    def frame_svg(progress: float, outcome: str | None) -> str:
+        return descent_scene(
+            planet_key,
+            st.session_state.heat_shielding,
+            st.session_state.pressure_hull,
+            st.session_state.power_source,
+            progress,
+            outcome,
+        )
 
-    # Klatka jest wyświetlana, gdy skrypt śpi na początku kolejnego przebiegu.
-    if frame > 0:
-        time.sleep(1.4 if frame > steps else 0.07)
+    scene_slot = st.empty()
+    caption_slot = st.empty()
 
-    if frame > steps:
-        st.session_state.sim_frame = 0
-        go("result")
-        st.rerun()
+    def draw(progress: float, outcome: str | None, caption: str) -> None:
+        scene_slot.markdown(
+            f"<div style='text-align:center'>{frame_svg(progress, outcome)}</div>",
+            unsafe_allow_html=True,
+        )
+        caption_slot.markdown(f"<h3 style='text-align:center'>{caption}</h3>", unsafe_allow_html=True)
 
-    scene = descent_scene(
-        planet_key,
-        st.session_state.heat_shielding,
-        st.session_state.pressure_hull,
-        st.session_state.power_source,
-        min(frame / steps, 1.0),
-        ("destroyed" if destroyed else "landed") if last else None,
+    # Animacja odtwarza się raz; kolejne przebiegi skryptu pokazują od razu klatkę końcową.
+    if not st.session_state.sim_done:
+        steps = 30
+        for frame in range(steps):
+            draw(frame / steps, None, f"Opadanie nad {planet['name']}…")
+            time.sleep(0.07)
+        st.session_state.sim_done = True
+
+    draw(
+        1.0,
+        "destroyed" if destroyed else "landed",
+        "Utrata sygnału po przybyciu" if destroyed else "Sonda wylądowała!",
     )
-    caption = (
-        ("Utrata sygnału po przybyciu" if destroyed else "Sonda wylądowała!")
-        if last
-        else f"Opadanie nad {planet['name']}…"
+    st.button(
+        "Zobacz wyniki",
+        type="primary",
+        use_container_width=True,
+        on_click=go,
+        args=("result",),
     )
-    st.markdown(f"<div style='text-align:center'>{scene}</div>", unsafe_allow_html=True)
-    st.markdown(f"<h3 style='text-align:center'>{caption}</h3>", unsafe_allow_html=True)
-
-    st.session_state.sim_frame = frame + 1
-    st.rerun()
 
 
 def screen_result() -> None:
